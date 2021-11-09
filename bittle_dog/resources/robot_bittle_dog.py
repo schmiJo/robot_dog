@@ -69,7 +69,6 @@ class RobotDog:
         for i in range(self.num_joints):
             p.resetJointState(self.robot_dog, i, 0,0)
         
-        print("RESET")
         
         # Change the friction for the left and right foot
         p.changeDynamics(self.robot_dog, 2, lateralFriction = 0.5)
