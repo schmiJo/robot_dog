@@ -1,0 +1,7 @@
+README.md
+setup.py
+bittle_bot.egg-info/PKG-INFO
+bittle_bot.egg-info/SOURCES.txt
+bittle_bot.egg-info/dependency_links.txt
+bittle_bot.egg-info/requires.txt
+bittle_bot.egg-info/top_level.txt
