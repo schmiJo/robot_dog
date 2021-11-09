@@ -1,4 +1,4 @@
 gym
-pybullet
-numpy
 matplotlib
+numpy
+pybullet

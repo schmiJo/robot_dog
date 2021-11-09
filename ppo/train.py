@@ -10,7 +10,7 @@ import gym
 
 from PPO import PPO
 
-import walking_boi 
+import bittle_dog 
 # import pybullet_envs
  
 
