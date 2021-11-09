@@ -17,7 +17,7 @@ class BittleDogEnv(gym.Env):
         super().__init__()
         
         self.action_size = 12
-        self.obs_size = 141
+        self.obs_size = 114
         
         
         self.action_space = gym.spaces.box.Box(
