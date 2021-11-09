@@ -11,18 +11,10 @@ class RobotDog:
     def __init__(self, client) -> None:
         
         f_name = os.path.join(os.path.dirname(__file__), 'robot_bittle_dog/urdf/bittle.urdf') 
-        self.robot_dog = p.loadURDF(fileName=f_name, basePosition=[0,0, 0], physicsClientId=client)
+        self.robot_dog = p.loadURDF(fileName=f_name, basePosition=[0,0, 0.5], physicsClientId=client)
         self.client = client
         # rotor Joint indices
-        self.joint_indices = [0,#"left back shoulder joint"
-                              1,#'"left back_knee_joint"
-                              2,#"left front shoulder joint"
-                              3,#"left front knee joint",
-                              4,#"right_ back shoulder joint"
-                              5,#"right_back_knee_joint"
-                              6,#"right_front_ shoulder_joint"
-                              7,#"right_front_knee_joint"
-                              ]
+        self.joint_indices = [0,1,2,3,4,5,6,7,8,9,10,11]
         
         #The minimum value that joint can achive (angles given in radians)
         self.joint_min = []
@@ -39,6 +31,8 @@ class RobotDog:
             joint_info = p.getJointInfo(self.robot_dog , i)
             self.joint_min.append(joint_info[8])
             self.joint_max.append(joint_info[9])
+            
+            p.enableJointForceTorqueSensor(self.robot_dog, i, True)
             
         
         self.base_pos_and_orient = p.getBasePositionAndOrientation(self.robot_dog)
@@ -67,15 +61,51 @@ class RobotDog:
         action[action < -1] = -1
         action[action > 1] = 1
          
-        p.setJointMotorControlArray(self.humanoid, self.joint_indices, controlMode=p.VELOCITY_CONTROL, forces=action*50)
+        p.setJointMotorControlArray(self.robot_dog, self.joint_indices, controlMode=p.VELOCITY_CONTROL, forces=action*1.2)
     
     def reset(self):
-        # TODO: Implement
-        pass
+        p.resetBasePositionAndOrientation(self.robot_dog,  self.base_pos_and_orient[0], self.base_pos_and_orient[1])
     
-    def get_observation(self):
-        # TODO: Implement
-        pass
+        for i in range(self.num_joints):
+            p.resetJointState(self.robot_dog, i, 0,0)
+        
+        print("RESET")
+        
+        # Change the friction for the left and right foot
+        p.changeDynamics(self.robot_dog, 2, lateralFriction = 0.5)
+        p.changeDynamics(self.robot_dog, 7, lateralFriction = 0.5)
+        
         
     
+    def get_observation(self):      
+        # Get the position and orientation of the car in the simulation
+        pos, ang = p.getBasePositionAndOrientation(self.robot_dog, self.client)
+        ang = p.getEulerFromQuaternion(ang)
+        ori = (math.cos(ang[2]), math.sin(ang[2]))
+        pos = pos[:2]
+        # Get the velocity of the car
         
+        
+        vel = p.getBaseVelocity(self.robot_dog, self.client)[0][0:2]
+
+        # Concatenate position, orientation, velocity
+        observation = (pos + ori + vel)
+
+        for i in self.joint_indices:
+            joint_state = p.getJointState(self.robot_dog, i)
+            
+            pos, vel, forces, torque = p.getJointState(self.robot_dog, i) 
+            # Add regularized joint position 
+            observation = observation +  (RobotDog.normalize_angle(joint_state[0], self.joint_min[i], self.joint_max[i]),)
+            # Add velocity and torque
+            observation = observation + (joint_state[1],joint_state[3]) 
+            # Add torque vector
+            observation = observation + joint_state[2]
+
+        return observation
+        
+    
+    def normalize_angle(value: float, min: float, max: float) -> float:
+        if max == min:
+            return 0 
+        return (value- min)/(max-min)

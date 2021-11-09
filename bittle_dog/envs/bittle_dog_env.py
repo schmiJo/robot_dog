@@ -16,7 +16,7 @@ class BittleDogEnv(gym.Env):
     def __init__(self) -> None:
         super().__init__()
         
-        self.action_size = 8
+        self.action_size = 12
         self.obs_size = 100
         
         
@@ -36,16 +36,19 @@ class BittleDogEnv(gym.Env):
         p.setTimeStep(1/30, self.client)
         self.prev_distance_to_origin = 0
         
+        self.done = False
+        
         self.reward_factor = 20
         
         self.humanoid = None
         self.plane = None 
         p.resetSimulation(self.client)
-        p.setGravity(0,0,-1)
+        p.setGravity(0,0,-9.8)
         
         #load the Dog
         self.plane = Plane(self.client)
         self.robot_dog = RobotDog(self.client)
+        
          
     def step(self, action):
         
@@ -67,11 +70,19 @@ class BittleDogEnv(gym.Env):
         
         
         #Done by running off boundaries
-        if (x_robo_dog >= 100 or x_robo_dog <= -100 or
-                y_robo_dog >= 100 or y_robo_dog <= -100):
+        if (x_robo_dog >= 500 or x_robo_dog <= -500 or
+                y_robo_dog >= 500 or y_robo_dog <= -500):
             self.done = True
             reward += 50
             
+        contactPoints =   p.getContactPoints(self.robot_dog.get_robot_dog_id(), self.plane.get_plane_id() );
+         
+        for contact in contactPoints:
+            if contact[1] == 1 and contact[2] == 0: 
+                 if(contact[3] == 1):
+                     # The Robot Flipped on his back -> terminate and punish
+                     reward = -10
+                     self.done = True
 
         
         obs = np.array(robot_dog_obs, dtype=np.float32)
@@ -79,7 +90,14 @@ class BittleDogEnv(gym.Env):
         return obs, reward, self.done, dict()
     
     def reset(self):
-        pass
+        
+        self.robot_dog.reset()
+        
+        self.done = False
+        
+        obs = self.robot_dog.get_observation()
+        
+        return np.hstack(obs)
 
     
     def render(self):
